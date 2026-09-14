@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply font-body bg-bg text-deep min-h-screen flex flex-col leading-relaxed;
+  }
+
+  img {
+    @apply max-w-full block;
+  }
+
+  a {
+    @apply text-teal transition-colors duration-200;
+  }
+  a:hover {
+    @apply text-ocean;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display font-bold leading-tight text-deep;
+  }
+  h1 {
+    font-size: clamp(2rem, 4vw + 1rem, 3.5rem);
+  }
+  h2 {
+    font-size: clamp(1.6rem, 2.5vw + 0.8rem, 2.4rem);
+  }
+  h3 {
+    @apply text-2xl;
+  }
+  h4 {
+    @apply text-lg;
+  }
+  p {
+    @apply text-muted;
+  }
+}
