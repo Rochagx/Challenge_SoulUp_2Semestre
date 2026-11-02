@@ -9,6 +9,7 @@ const NAV_LINKS = [
   { to: "/plataforma", label: "Plataforma" },
   { to: "/validar", label: "Validar Ação" },
   { to: "/ranking", label: "Ranking" },
+  { to: "/usuarios", label: "Usuários" },
   { to: "/integrantes", label: "Integrantes" },
   { to: "/faq", label: "FAQ" },
   { to: "/contato", label: "Contato" },
