@@ -4,7 +4,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import Container from "../components/Container";
 import Button from "../components/Button";
 import ApiStatus from "../components/ApiStatus";
-import { atualizarVideo, buscarVideo, excluirVideo } from "../services/api";
+import { atualizarVideo, buscarVideo, excluirVideo, validarVideo } from "../services/api";
 import { CAMPO, COR_STATUS } from "../lib/estilos";
 import type { Video } from "../types/api";
 
@@ -43,6 +43,16 @@ export default function VideoDetalhe() {
       alert("Vídeo atualizado!");
     } catch {
       alert("Não foi possível atualizar o vídeo.");
+    }
+  }
+
+  async function aoValidar() {
+    try {
+      const validado = await validarVideo(idVideo);
+      setVideo(validado);
+      alert("Resultado: " + validado.status);
+    } catch {
+      alert("Não foi possível validar.");
     }
   }
 
@@ -90,6 +100,9 @@ export default function VideoDetalhe() {
             <input id="urlVideo" required minLength={3} value={urlVideo} onChange={(e) => setUrlVideo(e.target.value)} className={CAMPO + " mb-6"} />
             <div className="flex flex-col gap-3 sm:flex-row">
               <Button type="submit">Salvar</Button>
+              {video.status === "PENDENTE" && (
+                <Button type="button" variant="secondary" onClick={aoValidar}>Validar</Button>
+              )}
               <Button type="button" variant="secondary" onClick={aoExcluir}>Excluir</Button>
             </div>
           </form>
