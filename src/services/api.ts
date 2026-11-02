@@ -1,5 +1,5 @@
 // Chamadas para a API Java: https://challenge-java-sustent-game.onrender.com
-import type { Usuario } from "../types/api";
+import type { ItemRanking, Usuario, Video } from "../types/api";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "/api";
 
@@ -36,7 +36,44 @@ export function atualizarUsuario(id: number, nome: string, email: string, pontos
   return chamar("/usuario/" + id, "PUT", { nome, email, pontos });
 }
 
+// A API não deixa excluir usuário que ainda tem vídeo.
+// Por isso apagamos os vídeos dele primeiro e só depois o usuário.
 export async function excluirUsuario(id: number): Promise<void> {
+  const videos = await listarVideos();
+  for (const video of videos) {
+    if (video.usuarioId === id) {
+      await excluirVideo(video.id);
+    }
+  }
   await chamar("/usuario/" + id, "DELETE");
 }
 
+// ---------- vídeos ----------
+export function listarVideos(): Promise<Video[]> {
+  return chamar("/video");
+}
+
+export function buscarVideo(id: number): Promise<Video> {
+  return chamar("/video/" + id);
+}
+
+export function criarVideo(urlVideo: string, usuarioId: number): Promise<Video> {
+  return chamar("/video", "POST", { urlVideo, usuarioId });
+}
+
+export function atualizarVideo(id: number, urlVideo: string, usuarioId: number): Promise<Video> {
+  return chamar("/video/" + id, "PUT", { urlVideo, usuarioId });
+}
+
+export function validarVideo(id: number): Promise<Video> {
+  return chamar("/video/" + id + "/validar", "PATCH");
+}
+
+export function excluirVideo(id: number): Promise<void> {
+  return chamar("/video/" + id, "DELETE");
+}
+
+// ---------- ranking ----------
+export function obterRanking(): Promise<ItemRanking[]> {
+  return chamar("/ranking");
+}
