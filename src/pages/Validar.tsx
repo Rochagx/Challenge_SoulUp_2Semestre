@@ -4,7 +4,7 @@ import Icon from "../components/Icon";
 import Button from "../components/Button";
 import Container from "../components/Container";
 import useDocumentMeta from "../hooks/useDocumentMeta";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import ApiStatus from "../components/ApiStatus";
 import { criarVideo, excluirVideo, listarUsuarios, listarVideos, validarVideo } from "../services/api";
 import { formatarNome } from "../lib/formatar";
@@ -46,6 +46,7 @@ export default function Validar() {
     "Como funciona a validação de ações sustentáveis na plataforma SoulUp.",
   );
 
+  const navigate = useNavigate();
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [videos, setVideos] = useState<Video[]>([]);
   const [carregando, setCarregando] = useState(true);
@@ -102,10 +103,9 @@ export default function Validar() {
       return;
     }
     try {
-      await criarVideo(urlVideo, usuarioId);
-      alert("Ação enviada!");
-      setUrlVideo("");
-      carregarDados();
+      const novo = await criarVideo(urlVideo, usuarioId);
+      alert("Ação enviada! Indo para o perfil do usuário.");
+      navigate("/usuarios/" + novo.usuarioId);
     } catch {
       alert("Não foi possível enviar a ação.");
     }
