@@ -1,8 +1,14 @@
-import { type FormEvent, useState } from "react";
+import { useEffect, useState } from "react";
+import type { FormEvent } from "react";
 import Icon from "../components/Icon";
 import Button from "../components/Button";
 import Container from "../components/Container";
 import useDocumentMeta from "../hooks/useDocumentMeta";
+import { Link } from "react-router-dom";
+import ApiStatus from "../components/ApiStatus";
+import { criarVideo, excluirVideo, listarUsuarios, listarVideos, validarVideo } from "../services/api";
+import { formatarNome } from "../lib/formatar";
+import type { Usuario, Video } from "../types/api";
 
 const PASSOS = [
   {
@@ -40,11 +46,69 @@ export default function Validar() {
     "Como funciona a validação de ações sustentáveis na plataforma SoulUp.",
   );
 
-  const [tipoAcao, setTipoAcao] = useState("reciclagem");
-  const [descricao, setDescricao] = useState("");
+  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
+  const [usuarioId, setUsuarioId] = useState(0);
+  const [urlVideo, setUrlVideo] = useState("");
 
-  function aoEnviar(e: FormEvent<HTMLFormElement>) {
+  async function carregarDados() {
+    setCarregando(true);
+    setErro(null);
+    try {
+      setUsuarios(await listarUsuarios());
+      setVideos(await listarVideos());
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : "Erro ao carregar dados.");
+    }
+    setCarregando(false);
+  }
+
+  useEffect(() => {
+    carregarDados();
+  }, []);
+
+  async function aoValidar(id: number) {
+    try {
+      const v = await validarVideo(id);
+      alert("Vídeo validado: " + v.status);
+      carregarDados();
+    } catch {
+      alert("Não foi possível validar.");
+    }
+  }
+
+  async function aoExcluir(id: number) {
+    if (!confirm("Excluir este vídeo?")) return;
+    try {
+      await excluirVideo(id);
+      alert("Vídeo excluído.");
+      carregarDados();
+    } catch {
+      alert("Não foi possível excluir.");
+    }
+  }
+
+  function nomeDoUsuario(id: number): string {
+    const usuario = usuarios.find((u) => u.id === id);
+    return usuario ? formatarNome(usuario.nome) : "Usuário #" + id;
+  }
+
+  async function aoEnviar(e: FormEvent) {
     e.preventDefault();
+    if (usuarioId === 0) {
+      alert("Escolha um usuário.");
+      return;
+    }
+    try {
+      await criarVideo(urlVideo, usuarioId);
+      alert("Ação enviada!");
+      setUrlVideo("");
+      carregarDados();
+    } catch {
+      alert("Não foi possível enviar a ação.");
+    }
   }
 
   return (
@@ -70,44 +134,36 @@ export default function Validar() {
               <h2 className="mb-5 text-[1.3rem]">Formulário de envio</h2>
 
               <div className="mb-4">
-                <label htmlFor="tipoAcao" className="mb-1 block text-[0.9rem] font-semibold text-deep">
-                  Tipo de ação
+                <label htmlFor="usuarioId" className="mb-1 block text-[0.9rem] font-semibold text-deep">
+                  Usuário
                 </label>
                 <select
-                  id="tipoAcao"
-                  name="tipoAcao"
-                  value={tipoAcao}
-                  onChange={(e) => setTipoAcao(e.target.value)}
+                  id="usuarioId"
+                  required
+                  value={usuarioId}
+                  onChange={(e) => setUsuarioId(Number(e.target.value))}
                   className={CAMPO_BASE}
                 >
-                  <option value="reciclagem">Reciclagem</option>
-                  <option value="transporte">Transporte limpo</option>
-                  <option value="agua">Economia de água</option>
-                  <option value="energia">Energia consciente</option>
-                  <option value="plantio">Plantio</option>
-                  <option value="consumo">Consumo consciente</option>
+                  <option value={0}>{carregando ? "Carregando…" : "Selecione"}</option>
+                  {usuarios.map((u) => (
+                    <option key={u.id} value={u.id}>{formatarNome(u.nome)}</option>
+                  ))}
                 </select>
               </div>
 
               <div className="mb-4">
-                <label htmlFor="descricao" className="mb-1 block text-[0.9rem] font-semibold text-deep">
-                  Descrição
+                <label htmlFor="urlVideo" className="mb-1 block text-[0.9rem] font-semibold text-deep">
+                  Link do vídeo da ação
                 </label>
-                <textarea
-                  id="descricao"
-                  name="descricao"
-                  placeholder="Conte rapidamente o que você fez."
-                  value={descricao}
-                  onChange={(e) => setDescricao(e.target.value)}
-                  className={`${CAMPO_BASE} min-h-[96px] resize-y`}
+                <input
+                  id="urlVideo"
+                  required
+                  minLength={3}
+                  placeholder="https://youtube.com/..."
+                  value={urlVideo}
+                  onChange={(e) => setUrlVideo(e.target.value)}
+                  className={CAMPO_BASE}
                 />
-              </div>
-
-              <div className="mb-4">
-                <label htmlFor="evidencia" className="mb-1 block text-[0.9rem] font-semibold text-deep">
-                  Evidência (foto)
-                </label>
-                <input type="file" id="evidencia" name="evidencia" accept="image/*" className={CAMPO_BASE} />
               </div>
 
               <Button type="submit" variant="primary" block>
@@ -145,6 +201,33 @@ export default function Validar() {
               </p>
             </aside>
           </div>
+        </Container>
+      </section>
+
+      <section className="pb-16">
+        <Container>
+          <h2 className="mb-6 text-[1.6rem]">Vídeos enviados</h2>
+          <ApiStatus carregando={carregando} erro={erro} onTentarNovamente={carregarDados} />
+          {!carregando && videos.length === 0 && <p className="text-muted">Nenhum vídeo enviado ainda.</p>}
+          <ul className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {videos.map((v) => (
+              <li key={v.id} className="flex flex-col gap-3 rounded-md border border-borderc bg-surface p-5 shadow-soft-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <strong className="text-deep">{nomeDoUsuario(v.usuarioId)}</strong>
+                  <span className="rounded-sm bg-borderc px-2 py-1 text-[0.75rem] font-semibold text-deep">
+                    {v.status} · {v.pontosRecebidos} pts
+                  </span>
+                </div>
+                <Link to={"/videos/" + v.id} className="truncate text-[0.85rem] font-semibold">{v.urlVideo}</Link>
+                <div className="flex flex-wrap gap-2">
+                  {v.status === "PENDENTE" && (
+                    <Button type="button" onClick={() => aoValidar(v.id)}>Validar</Button>
+                  )}
+                  <Button type="button" variant="secondary" onClick={() => aoExcluir(v.id)}>Excluir</Button>
+                </div>
+              </li>
+            ))}
+          </ul>
         </Container>
       </section>
 
