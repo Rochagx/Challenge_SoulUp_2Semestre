@@ -74,6 +74,29 @@ export function excluirVideo(id: number): Promise<void> {
 }
 
 // ---------- ranking ----------
-export function obterRanking(): Promise<ItemRanking[]> {
-  return chamar("/ranking");
+// O /ranking da API só traz quem já tem pontuação. Para mostrar TODOS os
+// usuários cadastrados, juntamos o ranking com a lista de usuários.
+export async function obterRanking(): Promise<ItemRanking[]> {
+  const rankingApi: ItemRanking[] = await chamar("/ranking");
+  const usuarios = await listarUsuarios();
+
+  const lista: ItemRanking[] = [];
+
+  for (const usuario of usuarios) {
+    const noRanking = rankingApi.find((item) => item.idUsuario === usuario.id);
+    lista.push({
+      posicao: 0,
+      idUsuario: usuario.id,
+      nome: usuario.nome,
+      pontos: noRanking ? noRanking.pontos : usuario.pontos,
+      acessoRecompensa: noRanking ? noRanking.acessoRecompensa : false,
+    });
+  }
+
+  // maior pontuação primeiro; depois numera as posições
+  lista.sort((a, b) => b.pontos - a.pontos);
+  for (let i = 0; i < lista.length; i++) {
+    lista[i].posicao = i + 1;
+  }
+  return lista;
 }
