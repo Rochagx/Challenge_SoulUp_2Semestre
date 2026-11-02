@@ -1,76 +1,45 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import Icon from "../components/Icon";
 import Container from "../components/Container";
 import SectionHeading from "../components/SectionHeading";
-import useDocumentMeta from "../hooks/useDocumentMeta";
-
-interface Usuario {
-  nome: string;
-  cidade: string;
-  pontos: number;
-}
-
-type Periodo = "semanal" | "mensal" | "geral";
-
-const DADOS: Record<Periodo, Usuario[]> = {
-  semanal: [
-    { nome: "Marina Costa", cidade: "Sao Paulo, SP", pontos: 96 },
-    { nome: "Lucas Almeida", cidade: "Recife, PE", pontos: 91 },
-    { nome: "Beatriz Lima", cidade: "Curitiba, PR", pontos: 87 },
-    { nome: "Rafael Souza", cidade: "Salvador, BA", pontos: 82 },
-    { nome: "Helena Pires", cidade: "Porto Alegre, RS", pontos: 78 },
-    { nome: "Diego Martins", cidade: "Belo Horizonte, MG", pontos: 74 },
-    { nome: "Camila Rocha", cidade: "Fortaleza, CE", pontos: 69 },
-    { nome: "Pedro Henrique", cidade: "Manaus, AM", pontos: 62 },
-  ],
-  mensal: [
-    { nome: "Beatriz Lima", cidade: "Curitiba, PR", pontos: 98 },
-    { nome: "Marina Costa", cidade: "Sao Paulo, SP", pontos: 95 },
-    { nome: "Diego Martins", cidade: "Belo Horizonte, MG", pontos: 90 },
-    { nome: "Rafael Souza", cidade: "Salvador, BA", pontos: 86 },
-    { nome: "Lucas Almeida", cidade: "Recife, PE", pontos: 81 },
-    { nome: "Helena Pires", cidade: "Porto Alegre, RS", pontos: 77 },
-    { nome: "Pedro Henrique", cidade: "Manaus, AM", pontos: 71 },
-    { nome: "Camila Rocha", cidade: "Fortaleza, CE", pontos: 65 },
-  ],
-  geral: [
-    { nome: "Marina Costa", cidade: "Sao Paulo, SP", pontos: 99 },
-    { nome: "Beatriz Lima", cidade: "Curitiba, PR", pontos: 97 },
-    { nome: "Rafael Souza", cidade: "Salvador, BA", pontos: 94 },
-    { nome: "Lucas Almeida", cidade: "Recife, PE", pontos: 92 },
-    { nome: "Diego Martins", cidade: "Belo Horizonte, MG", pontos: 89 },
-    { nome: "Helena Pires", cidade: "Porto Alegre, RS", pontos: 85 },
-    { nome: "Camila Rocha", cidade: "Fortaleza, CE", pontos: 80 },
-    { nome: "Pedro Henrique", cidade: "Manaus, AM", pontos: 76 },
-  ],
-};
-
-const CORES_MEDALHA: Record<number, string> = {
-  1: "text-[#d4a017]",
-  2: "text-[#95a5a6]",
-  3: "text-[#cd7f32]",
-};
+import ApiStatus from "../components/ApiStatus";
+import { obterRanking } from "../services/api";
+import type { ItemRanking } from "../types/api";
+import { formatarNome } from "../lib/formatar";
 
 function corPosicao(posicao: number): string {
-  return CORES_MEDALHA[posicao] ?? "text-teal";
+  if (posicao === 1) return "text-[#d4a017]";
+  if (posicao === 2) return "text-[#95a5a6]";
+  if (posicao === 3) return "text-[#cd7f32]";
+  return "text-teal";
 }
 
-export default function Ranking() {
-  useDocumentMeta(
-    "Ranking — SoulUp",
-    "Acompanhe o ranking SoulUp em tempo real: classificação semanal, mensal e geral dos usuários mais sustentáveis.",
-  );
+const TH = "bg-deep px-4 py-3 text-left font-display text-[0.9rem] uppercase tracking-wider text-white";
 
-  const [abaAtual, setAbaAtual] = useState<Periodo>("semanal");
+export default function Ranking() {
+  const [ranking, setRanking] = useState<ItemRanking[]>([]);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
 
-  const ordenados = useMemo(() => {
-    const buscaMinuscula = busca.toLowerCase();
-    const filtrados = DADOS[abaAtual].filter((usuario) =>
-      usuario.nome.toLowerCase().includes(buscaMinuscula),
-    );
-    return [...filtrados].sort((a, b) => b.pontos - a.pontos);
-  }, [abaAtual, busca]);
+  async function carregarRanking() {
+    setCarregando(true);
+    setErro(null);
+    try {
+      const dados = await obterRanking();
+      setRanking(dados.map((item) => ({ ...item, nome: formatarNome(item.nome) })));
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : "Erro ao carregar o ranking.");
+    }
+    setCarregando(false);
+  }
+
+  useEffect(() => {
+    carregarRanking();
+  }, []);
+
+  const filtrados = ranking.filter((u) => u.nome.toLowerCase().includes(busca.toLowerCase()));
 
   return (
     <section className="py-16">
@@ -78,34 +47,10 @@ export default function Ranking() {
         <SectionHeading>
           <h1>Ranking SoulUp</h1>
           <p className="mx-auto max-w-[640px]">
-            Os usuários mais engajados da comunidade. O líder mensal ganha
-            conta de energia subsidiada pelos parceiros.
+            Classificação em tempo real vinda da API SoulUp. Quem tem acesso à
+            recompensa aparece marcado.
           </p>
         </SectionHeading>
-
-        <div
-          className="mb-6 flex gap-2 overflow-x-auto border-b-2 border-borderc"
-          role="tablist"
-          aria-label="Filtrar período"
-        >
-          {(["semanal", "mensal", "geral"] as Periodo[]).map((periodo) => {
-            const ativo = abaAtual === periodo;
-            return (
-              <button
-                key={periodo}
-                role="tab"
-                onClick={() => setAbaAtual(periodo)}
-                className={`-mb-0.5 whitespace-nowrap border-b-[3px] px-5 py-3 font-body text-[0.95rem] font-semibold transition-all ${
-                  ativo
-                    ? "border-teal text-teal"
-                    : "border-transparent text-muted hover:text-deep"
-                }`}
-              >
-                {periodo.charAt(0).toUpperCase() + periodo.slice(1)}
-              </button>
-            );
-          })}
-        </div>
 
         <div className="mb-6 max-w-[360px]">
           <label htmlFor="ranking-search" className="mb-1 block text-[0.9rem] font-semibold text-deep">
@@ -121,58 +66,46 @@ export default function Ranking() {
           />
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse overflow-hidden rounded-md bg-surface shadow-soft-sm">
-            <thead>
-              <tr>
-                <th className="bg-deep px-4 py-3 text-left font-display text-[0.9rem] uppercase tracking-wider text-white">
-                  Pos.
-                </th>
-                <th className="bg-deep px-4 py-3 text-left font-display text-[0.9rem] uppercase tracking-wider text-white">
-                  Usuário
-                </th>
-                <th className="bg-deep px-4 py-3 text-left font-display text-[0.9rem] uppercase tracking-wider text-white">
-                  Cidade
-                </th>
-                <th className="bg-deep px-4 py-3 text-left font-display text-[0.9rem] uppercase tracking-wider text-white">
-                  Pontos
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {ordenados.length === 0 ? (
+        <ApiStatus carregando={carregando} erro={erro} onTentarNovamente={carregarRanking} />
+
+        {!carregando && !erro && (
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse overflow-hidden rounded-md bg-surface shadow-soft-sm">
+              <thead>
                 <tr>
-                  <td colSpan={4} className="p-8 text-center text-muted">
-                    Nenhum usuario encontrado.
-                  </td>
+                  <th className={TH}>Pos.</th>
+                  <th className={TH}>Usuário</th>
+                  <th className={TH}>Pontos</th>
+                  <th className={TH}>Recompensa</th>
                 </tr>
-              ) : (
-                ordenados.map((usuario, indice) => {
-                  const posicao = indice + 1;
-                  return (
-                    <tr
-                      key={usuario.nome}
-                      className="border-b border-borderc transition-colors last:border-b-0 hover:bg-bg"
-                    >
-                      <td className={`w-[50px] px-4 py-3 font-display text-[1.1rem] font-bold ${corPosicao(posicao)}`}>
-                        {posicao}º
+              </thead>
+              <tbody>
+                {filtrados.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="p-8 text-center text-muted">
+                      Nenhum usuário encontrado.
+                    </td>
+                  </tr>
+                ) : (
+                  filtrados.map((u) => (
+                    <tr key={u.idUsuario} className="border-b border-borderc transition-colors last:border-b-0 hover:bg-bg">
+                      <td className={"w-[50px] px-4 py-3 font-display text-[1.1rem] font-bold " + corPosicao(u.posicao)}>
+                        {u.posicao}º
                       </td>
                       <td className="px-4 py-3">
-                        <strong>{usuario.nome}</strong>
+                        <Link to={"/usuarios/" + u.idUsuario} className="font-semibold text-deep hover:text-teal">
+                          {u.nome}
+                        </Link>
                       </td>
-                      <td className="px-4 py-3">{usuario.cidade}</td>
-                      <td className="px-4 py-3 font-display font-bold text-deep">{usuario.pontos}</td>
+                      <td className="px-4 py-3 font-display font-bold text-deep">{u.pontos}</td>
+                      <td className="px-4 py-3">{u.acessoRecompensa ? "✅ Sim" : "—"}</td>
                     </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        <p className="mt-6 text-center text-[0.9rem] text-muted">
-          Dados ilustrativos para demonstração.
-        </p>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Container>
     </section>
   );
