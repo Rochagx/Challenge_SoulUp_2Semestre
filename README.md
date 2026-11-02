@@ -202,3 +202,24 @@ O projeto foi desenvolvido pela equipe *NextCode, formada por estudantes da turm
 - *Curso:* Análise e Desenvolvimento de Sistemas
 
 - *Turma:* 1TDSPO
+
+## Como rodar
+
+```
+npm install
+npm run dev
+```
+
+## Tecnologias
+
+React, TypeScript, Vite, React Router e Tailwind CSS 4.
+
+## Rotas
+
+- `/`, `/sobre`, `/plataforma`, `/validar`, `/ranking`, `/usuarios`, `/integrantes`, `/faq`, `/contato`
+- `/usuarios/:id` e `/videos/:id`: rotas com parâmetro, lidas com `useParams`. O `useNavigate` leva de volta para a lista após excluir ou enviar.
+
+## API
+
+`src/services/api.ts` chama a API Java (https://challenge-java-sustent-game.onrender.com) pelo proxy `/api` do Vite.
+Para chamar direto, crie um `.env` com `VITE_API_URL=...` (a API precisa liberar CORS).
