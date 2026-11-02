@@ -55,7 +55,10 @@ export default function UsuarioDetalhe() {
   }
 
   async function aoExcluir() {
-    if (!confirm("Excluir este usuário?")) return;
+    const msg = videos.length > 0
+      ? "Este usuário tem " + videos.length + " vídeo(s). Excluir o usuário e os vídeos dele?"
+      : "Excluir este usuário?";
+    if (!confirm(msg)) return;
     try {
       await excluirUsuario(idUsuario); // apaga os vídeos e depois o usuário
       alert("Usuário excluído.");
