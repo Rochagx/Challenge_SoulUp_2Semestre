@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Icon from "../components/Icon";
 import Button from "../components/Button";
 import Card from "../components/Card";
@@ -101,13 +101,11 @@ export default function Plataforma() {
     setSelecionadas(new Set());
   }
 
-  const total = useMemo(() => {
-    let soma = 0;
-    for (const acao of ACOES) {
-      if (selecionadas.has(acao.id)) soma += acao.pontos;
-    }
-    return Math.min(soma, 100);
-  }, [selecionadas]);
+  let soma = 0;
+  for (const acao of ACOES) {
+    if (selecionadas.has(acao.id)) soma += acao.pontos;
+  }
+  const total = Math.min(soma, 100);
 
   const tier = obterTier(total);
 
